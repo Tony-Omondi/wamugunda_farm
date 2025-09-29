@@ -1,0 +1,137 @@
+/* src/index.css */
+:root {
+  --primary-color: #63cf17;
+  --primary-dark: #4da312;
+  --background-light: #f7f8f6;
+  --background-dark: #182111;
+  --surface-light: #ffffff;
+  --surface-dark: #1f2a16;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Public Sans', sans-serif;
+  background-color: var(--background-light);
+  color: #182111;
+}
+
+/* Dark mode support */
+body.dark {
+  background-color: var(--background-dark);
+  color: var(--background-light);
+}
+
+/* Custom utilities */
+.bg-primary-custom {
+  background-color: var(--primary-color) !important;
+}
+
+.text-primary-custom {
+  color: var(--primary-color) !important;
+}
+
+.border-primary-custom {
+  border-color: var(--primary-color) !important;
+}
+
+.btn-primary-custom {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary-custom:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: white;
+}
+
+/* Product card hover effects */
+.product-card {
+  transition: all 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.product-image {
+  transition: transform 0.5s ease;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+
+/* Hero section */
+.hero-section {
+  background: linear-gradient(rgba(24, 33, 17, 0.7) 0%, rgba(24, 33, 17, 0.5) 100%), 
+              url('https://lh3.googleusercontent.com/aida-public/AB6AXuBg0sf2TILIMGeLMTzesQHuzHWc7WLLRYlTTyltXvHi2yfNM3YFFe6spaoHrH6UeZjOyzkl1V693yVXv7QFYe47_XF1JOGImqt6E1-ICZ_yRmgosmbx61rYG_iNFhlDRtPTjDdpIuC75DwagU0IQ-0MaAKc1DtcGwVcOP-s8kr_5gKn0bU6PBtrUgmmKBlsqvI1p7dEAdxk8iCGmIkEGu4JJ4XMk7KFnwgBBXkuumUQr1xBbjJSW-W9kWWboesDO2iRRzm-DSzNuEMD');
+  background-size: cover;
+  background-position: center;
+  min-height: 85vh;
+}
+
+/* Dark mode adjustments */
+body.dark .card {
+  background-color: var(--surface-dark);
+  border-color: rgba(99, 207, 23, 0.2);
+}
+
+body.dark .bg-light {
+  background-color: var(--surface-dark) !important;
+}
+
+body.dark .text-muted {
+  color: rgba(247, 248, 246, 0.6) !important;
+}
