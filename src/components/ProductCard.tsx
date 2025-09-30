@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Produce } from '../api/api';
 import { useCart } from '../context/CartContext';
@@ -13,6 +13,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [showAddedPopup, setShowAddedPopup] = useState(false);
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -21,8 +22,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       await new Promise((resolve) => setTimeout(resolve, 600));
       addToCart(product);
       setIsAddingToCart(false);
+      setShowAddedPopup(true);
     }
   };
+
+  useEffect(() => {
+    if (showAddedPopup) {
+      const timer = setTimeout(() => {
+        setShowAddedPopup(false);
+      }, 2000); // Popup disappears after 2 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [showAddedPopup]);
 
   const handleClick = () => {
     navigate(`/product/${product.id}`);
@@ -63,6 +74,34 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         animation: 'fadeIn 0.8s ease-out',
       }}
     >
+      {/* Popup Notification */}
+      {showAddedPopup && (
+        <div
+          aria-live="polite"
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'linear-gradient(135deg, #228B22 0%, #1B691B 100%)',
+            color: '#fff',
+            fontSize: '0.9rem',
+            fontWeight: '600',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '0.5rem',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            animation: 'fadeInPopup 0.3s ease-out, fadeOutPopup 0.3s ease-out 1.7s',
+          }}
+        >
+          <span>✓</span>
+          <span>Added to Cart!</span>
+        </div>
+      )}
+
       <div className="position-absolute top-0 start-0 d-flex flex-column gap-2 p-2" style={{ zIndex: 2 }}>
         {product.badge && (
           <span
@@ -327,6 +366,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {`
           @keyframes spin { to { transform: rotate(360deg); } }
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes fadeInPopup {
+            from { opacity: 0; transform: translate(-50%, -40%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+          }
+          @keyframes fadeOutPopup {
+            from { opacity: 1; transform: translate(-50%, -50%); }
+            to { opacity: 0; transform: translate(-50%, -40%); }
+          }
         `}
       </style>
     </div>

@@ -100,7 +100,7 @@ interface ApiConfig {
 
 // Static configuration based on Django URL patterns
 const STATIC_API_CONFIG: ApiConfig = {
-  baseUrl: 'http://127.0.0.1:8000/api/', // hardcoded for testing
+  baseUrl: 'https://wamugunda-farm-backend.onrender.com/api/', // hardcoded for testing
   endpoints: {
     categories: { path: 'categories/', method: 'get' },
     produce: { path: 'produce/', method: 'get' },
