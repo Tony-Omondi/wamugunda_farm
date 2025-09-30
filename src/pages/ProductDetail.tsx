@@ -1,92 +1,116 @@
-// pages/ProductDetail.tsx
-import { useNavigate, useParams } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import api from '../api/api';
+import type { Produce } from '../api/api';
 
-const ProductDetail = () => {
+interface ProductDetailProps {
+  cart: Array<Produce & { quantity: number }>;
+  setCart: React.Dispatch<React.SetStateAction<Array<Produce & { quantity: number }>>>;
+}
+
+const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
+  const [product, setProduct] = useState<Produce | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Produce[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [notification, setNotification] = useState(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Enhanced product data with multiple images
-  const product = {
-    id: 1,
-    name: "Mangoes",
-    description: "Sweet and juicy mangoes harvested at peak ripeness",
-    price: "KSh 250/kg",
-    originalPrice: "KSh 300/kg",
-    imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBcEnfGLLTl8WW09ESF7dP7IhYH_wshgElqxmwyBR4ha4FNSNiARBMUFglrT6BbtiZ_y0z_Z_8SWPRlWQ8eZRvXE5Ji-Up5ZX3NwxW-PH4MF42eIv8Hz4wzJJZBNzDCdGnkrg0hhiVlK_8ZywOuDt2eC7ubWCHZ5JLeu45Z902cBxxLk5aaCCZ8zgPt2H9Hd4ynS4ViQCxEh4HIuw3eUG848aPiz5zxJMsPjDqRN9HcPsjDhcxjmY7c56HvRyaa46q6KKUTmeZ6u78N",
-    images: [
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBcEnfGLLTl8WW09ESF7dP7IhYH_wshgElqxmwyBR4ha4FNSNiARBMUFglrT6BbtiZ_y0z_Z_8SWPRlWQ8eZRvXE5Ji-Up5ZX3NwxW-PH4MF42eIv8Hz4wzJJZBNzDCdGnkrg0hhiVlK_8ZywOuDt2eC7ubWCHZ5JLeu45Z902cBxxLk5aaCCZ8zgPt2H9Hd4ynS4ViQCxEh4HIuw3eUG848aPiz5zxJMsPjDqRN9HcPsjDhcxjmY7c56HvRyaa46q6KKUTmeZ6u78N",
-      "https://images.unsplash.com/photo-1553279768-865429fa0078?w=500&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1590502543744-9c7f5b7bdfc6?w=500&h=400&fit=crop"
-    ],
-    category: "fruits",
-    inStock: true,
-    rating: 4.8,
-    reviewCount: 124,
-    organic: true,
-    deliveryTime: "1-2 days",
-    details: "Our mangoes are grown using sustainable farming practices. They are hand-picked at peak ripeness to ensure the best flavor and nutritional value. Each mango is carefully selected for optimal sweetness and texture.",
-    nutrition: [
-      { name: "Calories", value: "60 cal per 100g" },
-      { name: "Vitamin C", value: "60% of RDI" },
-      { name: "Vitamin A", value: "35% of RDI" },
-      { name: "Fiber", value: "1.6g per 100g" }
-    ],
-    storageTips: "Store at room temperature until ripe, then refrigerate to maintain freshness.",
-    benefits: [
-      "Rich in antioxidants and vitamins",
-      "Supports immune system health",
-      "Promotes digestive health",
-      "Natural energy booster"
-    ]
-  };
-
-  const relatedProducts = [
-    {
-      id: 2,
-      name: "Avocados",
-      price: "KSh 180/kg",
-      imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuA-9BbBTLkQjt3x7lrxrcEH3Y5AlA0u3oHRRLeIdji2SewnV_bJ6BUTL5_M9awX-BWtjfdtLj0Jr2g9OCf_dtZe-teEB9L8YKiqQdpSLHpz8z5DFPoWYPwRDNGtU295TXkYhBHi1GMbjLlZXjoOiePXPMt3D32bfN6gVv_B1yxtIvfvDUccW22RoRY5AuPd-uywKTvQYj7sfIYSla3v5GQl9DblSpFERwC9IQKa3msx3Tt2i6HbZ-GPyGx5NjRBtOtxLmOFpETw_DFK"
-    },
-    {
-      id: 3,
-      name: "Bananas",
-      price: "KSh 120/bunch",
-      imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuAqqGFwZvA0gjvfO25amMlhZeGgyv7YsRSSinI5DECd1l8Zz7DfiNogYNX7eBDTlFglp3XLEP2phsdhcdaWl9lzVfQUw9OBbPIDvYNbWNqmsdVmrjStZZ20wSREBIpWnxbrq4ShTDdV3tJfrdYXsLqHkmP6ddISGJ1f89uENyGeEtA0lwIwRd8S793lFiOw6lg6yhGFC6grAzfmg_5Q5-b5yZtTsBvTMsUZZJZ2mpNcxz48wZ7wa5zCwdd5m57_fVxULnaIUA78KITW"
-    }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [productData, produceData] = await Promise.all([
+          api.getProduceDetail(Number(id)),
+          api.getProduceList(),
+        ]);
+        setProduct(productData);
+        setRelatedProducts(
+          produceData
+            .filter(p => p.category?.name === productData.category?.name && p.id !== productData.id)
+            .slice(0, 3)
+        );
+        setLoading(false);
+      } catch (error: any) {
+        setError('Failed to load product details. Please try again later.');
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id]);
 
   const handleAddToCart = () => {
+    if (!product) return;
+    setCart(prev => [...prev, { ...product, quantity }]);
     setNotification({
       message: `${quantity} ${product.name} added to cart!`,
-      type: 'success'
+      type: 'success',
     });
-    
     setTimeout(() => setNotification(null), 3000);
-    
-    // Here you would typically add to a global cart state
-    console.log(`Added ${quantity} ${product.name} to cart`);
   };
 
   const handleBuyNow = () => {
     handleAddToCart();
-    // Navigate to checkout
-    setTimeout(() => {
-      // navigate('/checkout');
-      alert('Proceeding to checkout!');
-    }, 500);
+    setTimeout(() => navigate('/cart'), 500);
   };
 
   const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
 
+  if (loading) {
+    return (
+      <div className="text-center py-5" style={{ minHeight: '100vh' }}>
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid rgba(34, 139, 34, 0.2)',
+            borderTop: '3px solid #228B22',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto'
+          }}
+        ></div>
+        <p>Loading...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="text-center py-5" style={{ minHeight: '100vh' }}>
+        <p style={{ color: '#DC3545', fontSize: '1.25rem' }}>
+          {error || 'Product not found.'}
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="btn"
+          style={{
+            backgroundColor: '#228B22',
+            color: '#fff',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.375rem',
+            marginTop: '1rem'
+          }}
+        >
+          Back to Shop
+        </button>
+      </div>
+    );
+  }
+
+  // Convert price and original_price to numbers for toFixed, with fallbacks
+  const price = parseFloat(product.price) || 0;
+  const originalPrice = product.original_price ? parseFloat(product.original_price) : null;
+
   return (
-    <div style={{ minHeight: '100vh', paddingTop: '2rem', paddingBottom: '4rem' }}>
+    <div style={{ minHeight: '100vh', paddingTop: '3rem', paddingBottom: '3rem' }}>
       <div className="container">
-        {/* Navigation */}
         <button
           onClick={() => navigate(-1)}
           className="btn d-flex align-items-center gap-2 mb-4 p-0"
@@ -94,51 +118,40 @@ const ProductDetail = () => {
             color: '#228B22',
             textDecoration: 'none',
             fontSize: '1rem',
-            fontWeight: '600',
-            transition: 'color 0.3s'
+            transition: 'color 0.3s',
+            animation: 'fadeIn 0.8s ease-out'
           }}
           onMouseOver={(e) => (e.currentTarget.style.color = '#1B691B')}
           onMouseOut={(e) => (e.currentTarget.style.color = '#228B22')}
         >
-          <span style={{ fontSize: '1.25rem' }}>←</span>
+          <span className="bi bi-arrow-left" style={{ fontSize: '1.25rem' }}></span>
           Back to Shop
         </button>
 
-        <div className="row g-5">
-          {/* Product Images */}
-          <div className="col-lg-6">
-            <div style={{ animation: 'slideInLeft 0.8s ease-out' }}>
-              {/* Main Image */}
-              <div 
-                className="rounded-3 overflow-hidden mb-4"
-                style={{
-                  aspectRatio: '1/1',
-                  background: '#f8f9fa',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <img
-                  src={product.images[selectedImage]}
-                  alt={product.name}
-                  className="img-fluid w-100 h-100"
-                  style={{ objectFit: 'cover' }}
-                />
-              </div>
-
-              {/* Thumbnail Images */}
-              <div className="d-flex gap-3">
+        <div className="row g-4">
+          <div className="col-lg-6" style={{ animation: 'slideInLeft 0.8s ease-out' }}>
+            <div className="rounded" style={{ position: 'relative', aspectRatio: '1/1', background: '#f8f9fa' }}>
+              <img
+                src={product.images?.[selectedImage]?.image || product.image || 'https://via.placeholder.com/400'}
+                alt={product.images?.[selectedImage]?.alt_text || product.name || 'Product Image'}
+                className="img-fluid rounded"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+            {product.images?.length > 0 && (
+              <div className="d-flex gap-3 mt-3">
                 {product.images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`border-0 rounded-2 overflow-hidden p-0 ${selectedImage === index ? 'border-2 border-success' : ''}`}
+                    className="border-0 rounded p-0"
                     style={{
                       width: '80px',
                       height: '80px',
                       background: '#f8f9fa',
                       cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      border: selectedImage === index ? '3px solid #228B22' : '1px solid #dee2e6'
+                      border: selectedImage === index ? '3px solid #228B22' : '1px solid #dee2e6',
+                      transition: 'all 0.3s ease'
                     }}
                     onMouseOver={(e) => {
                       if (selectedImage !== index) {
@@ -154,258 +167,414 @@ const ProductDetail = () => {
                     }}
                   >
                     <img
-                      src={image}
-                      alt={`${product.name} view ${index + 1}`}
-                      className="w-100 h-100"
+                      src={image.image || 'https://via.placeholder.com/80'}
+                      alt={image.alt_text || `${product.name} view ${index + 1}`}
+                      className="w-100 h-100 rounded"
                       style={{ objectFit: 'cover' }}
                     />
                   </button>
                 ))}
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Product Details */}
-          <div className="col-lg-6">
-            <div style={{ animation: 'slideInRight 0.8s ease-out' }}>
-              {/* Badges */}
-              <div className="d-flex flex-wrap gap-2 mb-3">
-                <span className="badge bg-success">In Stock</span>
-                {product.organic && <span className="badge bg-success">🌿 Organic</span>}
-                <span className="badge bg-info text-capitalize">{product.category}</span>
-                <span className="badge bg-warning text-dark">⭐ {product.rating} ({product.reviewCount})</span>
-              </div>
+          <div className="col-lg-6 d-flex flex-column justify-content-center" style={{ animation: 'slideInRight 0.8s ease-out' }}>
+            <div className="d-flex flex-wrap gap-2 mb-3">
+              <span
+                className="badge"
+                style={{
+                  backgroundColor: product.available ? '#28A745' : '#DC3545',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.25rem'
+                }}
+              >
+                {product.available ? 'In Stock' : 'Out of Stock'}
+              </span>
+              {product.is_organic && (
+                <span
+                  className="badge"
+                  style={{
+                    backgroundColor: '#228B22',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.25rem'
+                  }}
+                >
+                  Organic
+                </span>
+              )}
+              <span
+                className="badge"
+                style={{
+                  backgroundColor: '#17A2B8',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.25rem',
+                  textTransform: 'capitalize'
+                }}
+              >
+                {product.category?.name || 'Unknown Category'}
+              </span>
+              {product.badge && (
+                <span
+                  className="badge"
+                  style={{
+                    backgroundColor: '#FFC107',
+                    color: '#2F4F4F',
+                    fontSize: '0.875rem',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.25rem'
+                  }}
+                >
+                  {product.badge}
+                </span>
+              )}
+            </div>
 
-              {/* Product Name */}
-              <h1 className="display-5 fw-bold mb-3" style={{ color: '#2F4F4F' }}>
-                {product.name}
-              </h1>
+            <h1
+              style={{
+                fontSize: '2.5rem',
+                fontWeight: '700',
+                color: '#2F4F4F',
+                marginBottom: '1rem',
+                animation: 'slideUp 0.8s ease-out'
+              }}
+            >
+              {product.name || 'Unnamed Product'}
+            </h1>
 
-              {/* Rating */}
-              <div className="d-flex align-items-center gap-3 mb-4">
+            {product.rating > 0 && (
+              <div className="d-flex align-items-center gap-2 mb-4" style={{ animation: 'slideUp 0.8s ease-out 0.1s' }}>
                 <div className="d-flex">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <span
                       key={star}
                       style={{
-                        color: star <= Math.floor(product.rating) ? '#FFD700' : '#E5E7EB',
-                        fontSize: '1.25rem'
+                        color: star <= Math.round(product.rating) ? '#FFD700' : '#E5E7EB',
+                        fontSize: '1rem'
                       }}
                     >
                       ★
                     </span>
                   ))}
                 </div>
-                <span style={{ color: 'rgba(47, 79, 79, 0.7)', fontWeight: '500' }}>
-                  {product.rating} out of 5 ({product.reviewCount} reviews)
+                <span style={{ fontSize: '0.875rem', color: 'rgba(47, 79, 79, 0.6)' }}>
+                  {product.rating} ({product.review_count || 0} reviews)
                 </span>
               </div>
+            )}
 
-              {/* Price */}
-              <div className="mb-4">
-                <span className="display-6 fw-bold" style={{ color: '#228B22' }}>
-                  {product.price}
+            <div className="mb-4" style={{ animation: 'slideUp 0.8s ease-out 0.2s' }}>
+              <span style={{ fontSize: '2rem', fontWeight: '700', color: '#228B22' }}>
+                KSh {price.toFixed(2)}
+              </span>
+              {originalPrice && (
+                <span
+                  style={{
+                    fontSize: '1.25rem',
+                    color: 'rgba(47, 79, 79, 0.5)',
+                    textDecoration: 'line-through',
+                    marginLeft: '0.5rem'
+                  }}
+                >
+                  KSh {originalPrice.toFixed(2)}
                 </span>
-                {product.originalPrice && (
-                  <span className="text-muted text-decoration-line-through ms-2 fs-5">
-                    {product.originalPrice}
-                  </span>
-                )}
-                {product.originalPrice && (
-                  <span className="badge bg-danger ms-2 fs-6">
-                    Save {((1 - parseFloat(product.price.replace(/[^\d.]/g, '')) / parseFloat(product.originalPrice.replace(/[^\d.]/g, ''))) * 100).toFixed(0)}%
-                  </span>
-                )}
-              </div>
+              )}
+              {originalPrice && (
+                <span
+                  className="badge"
+                  style={{
+                    backgroundColor: '#DC3545',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    padding: '0.25rem 0.5rem',
+                    marginLeft: '0.5rem'
+                  }}
+                >
+                  Save {((1 - price / originalPrice) * 100).toFixed(0)}%
+                </span>
+              )}
+            </div>
 
-              {/* Description */}
-              <p className="fs-5 text-muted mb-4" style={{ lineHeight: '1.6' }}>
-                {product.description}
-              </p>
+            <p
+              style={{
+                fontSize: '1.25rem',
+                color: 'rgba(47, 79, 79, 0.7)',
+                marginBottom: '1.5rem',
+                animation: 'slideUp 0.8s ease-out 0.3s'
+              }}
+            >
+              {product.description || 'No description available.'}
+            </p>
 
-              {/* Quantity Selector */}
-              <div className="d-flex align-items-center gap-3 mb-4">
-                <span className="fw-semibold">Quantity:</span>
+            {product.available && (
+              <div className="d-flex align-items-center gap-3 mb-4" style={{ animation: 'slideUp 0.8s ease-out 0.4s' }}>
+                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#2F4F4F' }}>
+                  Quantity:
+                </span>
                 <div className="d-flex align-items-center gap-2">
                   <button
                     onClick={decrementQuantity}
-                    className="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center"
-                    style={{ width: '40px', height: '40px' }}
+                    className="btn btn-outline-secondary rounded-circle"
+                    style={{ width: '40px', height: '40px', lineHeight: '1' }}
                   >
                     -
                   </button>
-                  <span className="fw-bold fs-5" style={{ minWidth: '50px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1rem', minWidth: '50px', textAlign: 'center' }}>
                     {quantity}
                   </span>
                   <button
                     onClick={incrementQuantity}
-                    className="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center"
-                    style={{ width: '40px', height: '40px' }}
+                    className="btn btn-outline-secondary rounded-circle"
+                    style={{ width: '40px', height: '40px', lineHeight: '1' }}
                   >
                     +
                   </button>
                 </div>
               </div>
+            )}
 
-              {/* Action Buttons */}
-              <div className="d-flex flex-column flex-sm-row gap-3 mb-5">
+            {product.available && (
+              <div className="d-flex flex-column flex-sm-row gap-3 mb-4" style={{ animation: 'slideUp 0.8s ease-out 0.5s' }}>
                 <button
                   onClick={handleAddToCart}
-                  className="btn flex-fill d-flex align-items-center justify-content-center gap-2 py-3"
+                  className="btn flex-fill"
                   style={{
-                    background: 'linear-gradient(135deg, #228B22 0%, #1B691B 100%)',
+                    backgroundColor: '#228B22',
                     color: '#fff',
+                    fontSize: '1rem',
                     fontWeight: '700',
-                    fontSize: '1.1rem',
-                    borderRadius: '12px',
-                    border: 'none',
-                    transition: 'all 0.3s ease'
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.375rem',
+                    transition: 'background-color 0.3s, transform 0.2s'
                   }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#1B691B')}
+                  onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#228B22')}
+                  onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
+                  onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                 >
-                  <span>🛒</span>
-                  Add to Cart
+                  <span className="bi bi-cart me-2"></span>Add to Cart
                 </button>
                 <button
                   onClick={handleBuyNow}
-                  className="btn flex-fill d-flex align-items-center justify-content-center gap-2 py-3"
+                  className="btn flex-fill"
                   style={{
                     backgroundColor: 'transparent',
                     color: '#228B22',
                     border: '2px solid #228B22',
+                    fontSize: '1rem',
                     fontWeight: '700',
-                    fontSize: '1.1rem',
-                    borderRadius: '12px',
-                    transition: 'all 0.3s ease'
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.375rem',
+                    transition: 'background-color 0.3s, transform 0.2s'
                   }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(34, 139, 34, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(34, 139, 34, 0.1)')}
+                  onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
+                  onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                 >
-                  <span>⚡</span>
-                  Buy Now
+                  <span className="bi bi-lightning-fill me-2"></span>Buy Now
                 </button>
               </div>
+            )}
 
-              {/* Delivery Info */}
-              <div className="d-flex align-items-center gap-3 p-3 rounded" style={{ backgroundColor: 'rgba(34, 139, 34, 0.05)' }}>
+            {product.delivery_time && (
+              <div
+                className="d-flex align-items-center gap-3 p-3 rounded"
+                style={{
+                  backgroundColor: 'rgba(34, 139, 34, 0.05)',
+                  animation: 'slideUp 0.8s ease-out 0.6s'
+                }}
+              >
                 <span style={{ fontSize: '1.5rem' }}>🚚</span>
                 <div>
                   <div style={{ fontWeight: '600', color: '#2F4F4F' }}>Free Delivery</div>
                   <div style={{ color: 'rgba(47, 79, 79, 0.7)', fontSize: '0.9rem' }}>
-                    {product.deliveryTime} • Order today, delivered fresh
+                    {product.delivery_time} • Order today, delivered fresh
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
-        </div>
 
-        {/* Additional Details */}
-        <div className="row mt-5">
-          <div className="col-12">
-            <div className="border-top pt-5">
-              {/* Tabs for Details */}
-              <div className="row g-5">
-                <div className="col-md-6">
-                  <h4 className="fw-bold mb-4" style={{ color: '#2F4F4F' }}>Product Details</h4>
-                  <p className="text-muted mb-4" style={{ lineHeight: '1.6' }}>
-                    {product.details}
-                  </p>
-                  
-                  <h5 className="fw-semibold mb-3">Health Benefits</h5>
-                  <ul className="list-unstyled">
-                    {product.benefits.map((benefit, index) => (
-                      <li key={index} className="d-flex align-items-center gap-2 mb-2">
-                        <span style={{ color: '#228B22' }}>✓</span>
-                        <span className="text-muted">{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="col-md-6">
-                  <h4 className="fw-bold mb-4" style={{ color: '#2F4F4F' }}>Nutritional Information</h4>
-                  <div className="row g-3">
-                    {product.nutrition.map((item, index) => (
-                      <div key={index} className="col-6">
-                        <div className="p-3 rounded text-center" style={{ backgroundColor: 'rgba(34, 139, 34, 0.05)' }}>
-                          <div className="fw-bold text-success">{item.value}</div>
-                          <div className="small text-muted">{item.name}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <h5 className="fw-semibold mt-4 mb-3">Storage Tips</h5>
-                  <p className="text-muted">{product.storageTips}</p>
+          {(product.details || product.storage_tips || product.nutrition?.length > 0 || product.benefits?.length > 0) && (
+            <div className="col-12 mt-5">
+              <div className="border-top pt-5">
+                <div className="row g-4">
+                  {(product.details || product.benefits?.length > 0) && (
+                    <div className="col-md-6">
+                      <h4
+                        style={{
+                          fontSize: '1.5rem',
+                          fontWeight: '700',
+                          color: '#2F4F4F',
+                          marginBottom: '1rem'
+                        }}
+                      >
+                        Product Details
+                      </h4>
+                      {product.details && (
+                        <p
+                          style={{
+                            fontSize: '1rem',
+                            color: 'rgba(47, 79, 79, 0.7)',
+                            marginBottom: '1.5rem'
+                          }}
+                        >
+                          {product.details}
+                        </p>
+                      )}
+                      {product.benefits?.length > 0 && (
+                        <>
+                          <h5 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#2F4F4F', marginBottom: '1rem' }}>
+                            Health Benefits
+                          </h5>
+                          <ul style={{ listStyle: 'none', padding: 0 }}>
+                            {product.benefits.map((benefit, index) => (
+                              <li key={index} className="d-flex align-items-center gap-2 mb-2">
+                                <span style={{ color: '#228B22' }}>✓</span>
+                                <span style={{ color: 'rgba(47, 79, 79, 0.7)' }}>{benefit.description}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {(product.nutrition?.length > 0 || product.storage_tips) && (
+                    <div className="col-md-6">
+                      {product.nutrition?.length > 0 && (
+                        <>
+                          <h4
+                            style={{
+                              fontSize: '1.5rem',
+                              fontWeight: '700',
+                              color: '#2F4F4F',
+                              marginBottom: '1rem'
+                            }}
+                          >
+                            Nutritional Information
+                          </h4>
+                          <div className="row g-3">
+                            {product.nutrition.map((item, index) => (
+                              <div key={index} className="col-6">
+                                <div
+                                  className="p-3 rounded text-center"
+                                  style={{ backgroundColor: 'rgba(34, 139, 34, 0.05)' }}
+                                >
+                                  <div style={{ fontWeight: '700', color: '#228B22' }}>{item.value}</div>
+                                  <div style={{ fontSize: '0.875rem', color: 'rgba(47, 79, 79, 0.7)' }}>
+                                    {item.name}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      {product.storage_tips && (
+                        <>
+                          <h5
+                            style={{
+                              fontSize: '1.25rem',
+                              fontWeight: '600',
+                              color: '#2F4F4F',
+                              marginTop: '1.5rem',
+                              marginBottom: '1rem'
+                            }}
+                          >
+                            Storage Tips
+                          </h5>
+                          <p style={{ fontSize: '1rem', color: 'rgba(47, 79, 79, 0.7)' }}>
+                            {product.storage_tips}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Related Products */}
-        <div className="row mt-5">
-          <div className="col-12">
-            <h4 className="fw-bold mb-4" style={{ color: '#2F4F4F' }}>You Might Also Like</h4>
-            <div className="row g-4">
-              {relatedProducts.map((relatedProduct) => (
-                <div key={relatedProduct.id} className="col-md-6 col-lg-4">
-                  <div 
-                    className="card border-0 rounded-3 shadow-sm h-100"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/product/${relatedProduct.id}`)}
+          {relatedProducts.length > 0 && (
+            <div className="col-12 mt-5">
+              <h4
+                style={{
+                  fontSize: '1.75rem',
+                  fontWeight: '700',
+                  color: '#2F4F4F',
+                  marginBottom: '1.5rem',
+                  animation: 'fadeIn 0.8s ease-out'
+                }}
+              >
+                You Might Also Like
+              </h4>
+              <div className="row g-4">
+                {relatedProducts.map((relatedProduct, index) => (
+                  <div
+                    key={relatedProduct.id}
+                    className="col-md-6 col-lg-4"
+                    style={{ animation: `scaleIn 0.5s ease-out ${0.2 * index}s` }}
                   >
-                    <img
-                      src={relatedProduct.imageUrl}
-                      alt={relatedProduct.name}
-                      className="card-img-top"
-                      style={{ height: '200px', objectFit: 'cover' }}
-                    />
-                    <div className="card-body">
-                      <h6 className="card-title fw-bold">{relatedProduct.name}</h6>
-                      <p className="card-text text-success fw-semibold mb-0">{relatedProduct.price}</p>
+                    <div
+                      className="card h-100"
+                      style={{
+                        border: '1px solid rgba(34, 139, 34, 0.2)',
+                        cursor: 'pointer',
+                        borderRadius: '0.375rem',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      }}
+                      onClick={() => navigate(`/product/${relatedProduct.id}`)}
+                    >
+                      <img
+                        src={relatedProduct.image || 'https://via.placeholder.com/200'}
+                        alt={relatedProduct.name || 'Related Product'}
+                        className="card-img-top"
+                        style={{ height: '200px', objectFit: 'cover' }}
+                      />
+                      <div className="card-body">
+                        <h6 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#2F4F4F' }}>
+                          {relatedProduct.name || 'Unnamed Product'}
+                        </h6>
+                        <p style={{ fontSize: '1rem', fontWeight: '700', color: '#228B22', marginBottom: '0' }}>
+                          KSh {(parseFloat(relatedProduct.price) || 0).toFixed(2)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
-      </div>
 
-      {/* Notification */}
-      {notification && (
-        <div
-          className="position-fixed top-0 end-0 m-4 p-3 rounded shadow"
-          style={{
-            backgroundColor: notification.type === 'success' ? '#228B22' : '#DC3545',
-            color: '#fff',
-            zIndex: 1060,
-            animation: 'slideInRight 0.3s ease-out'
-          }}
-        >
-          {notification.message}
-        </div>
-      )}
+        {notification && (
+          <div
+            className="position-fixed top-0 end-0 m-4 p-3 rounded shadow"
+            style={{
+              backgroundColor: notification.type === 'success' ? '#228B22' : '#DC3545',
+              color: '#fff',
+              zIndex: 1060,
+              animation: 'slideInRight 0.3s ease-out'
+            }}
+          >
+            {notification.message}
+          </div>
+        )}
+      </div>
 
       <style>
         {`
-          @keyframes slideInLeft {
-            from { opacity: 0; transform: translateX(-30px); }
-            to { opacity: 1; transform: translateX(0); }
-          }
-          @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(30px); }
-            to { opacity: 1; transform: translateX(0); }
-          }
+          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes slideInLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+          @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+          @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         `}
       </style>
     </div>

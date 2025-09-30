@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
@@ -8,6 +7,7 @@ import Footer from './components/Footer';
 const Home = lazy(() => import('./pages/Home'));
 const Shop = lazy(() => import('./pages/Shop'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Cart = lazy(() => import('./pages/Cart')); // Add Cart import
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +51,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/shop" element={<Shop />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/cart" element={<CartPage />} /> {/* Add Cart route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
@@ -61,6 +62,191 @@ function App() {
     </ErrorBoundary>
   );
 }
+
+// Cart Page Component (if you want a dedicated cart page)
+const CartPage: React.FC = () => {
+  const [cartItems, setCartItems] = useState<any[]>([]);
+
+  // Load cart items from localStorage or context
+  useEffect(() => {
+    // You can replace this with context or state management
+    const savedCart = localStorage.getItem('cartItems');
+    if (savedCart) {
+      setCartItems(JSON.parse(savedCart));
+    }
+  }, []);
+
+  const updateCartQuantity = (id: number, quantity: number) => {
+    if (quantity <= 0) {
+      removeFromCart(id);
+      return;
+    }
+    setCartItems(prevItems => {
+      const updatedItems = prevItems.map(item =>
+        item.id === id ? { ...item, quantity } : item
+      );
+      localStorage.setItem('cartItems', JSON.stringify(updatedItems));
+      return updatedItems;
+    });
+  };
+
+  const removeFromCart = (id: number) => {
+    setCartItems(prevItems => {
+      const filteredItems = prevItems.filter(item => item.id !== id);
+      localStorage.setItem('cartItems', JSON.stringify(filteredItems));
+      return filteredItems;
+    });
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+    localStorage.removeItem('cartItems');
+  };
+
+  const totalPrice = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+  return (
+    <div className="container py-5">
+      <div className="row">
+        <div className="col-12">
+          <h1 className="display-4 fw-bold text-dark mb-4">Your Shopping Cart</h1>
+          
+          {cartItems.length === 0 ? (
+            <div className="text-center py-5">
+              <div className="mb-4" style={{ fontSize: '4rem' }}>🛒</div>
+              <h3 className="text-dark mb-3">Your cart is empty</h3>
+              <p className="text-muted mb-4">
+                Discover our fresh produce and add items to your cart.
+              </p>
+              <a
+                href="/shop"
+                className="btn"
+                style={{
+                  background: 'linear-gradient(135deg, #228B22 0%, #1B691B 100%)',
+                  color: '#fff',
+                  fontWeight: '600',
+                  padding: '0.75rem 2rem',
+                  borderRadius: '50px',
+                  border: 'none',
+                  textDecoration: 'none',
+                  display: 'inline-block'
+                }}
+              >
+                Start Shopping
+              </a>
+            </div>
+          ) : (
+            <div className="row">
+              <div className="col-lg-8">
+                {cartItems.map(item => (
+                  <div key={item.id} className="card mb-3 border-0 shadow-sm">
+                    <div className="card-body">
+                      <div className="row align-items-center">
+                        <div className="col-md-2">
+                          <img 
+                            src={item.image} 
+                            alt={item.name}
+                            className="img-fluid rounded"
+                            style={{
+                              width: '80px',
+                              height: '80px',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <h5 className="card-title text-dark mb-1">{item.name}</h5>
+                          <p className="text-success mb-0 fw-bold">KSh {item.price}</p>
+                        </div>
+                        <div className="col-md-3">
+                          <div className="d-flex align-items-center gap-2">
+                            <button
+                              className="btn btn-outline-success btn-sm"
+                              onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                            >
+                              -
+                            </button>
+                            <span className="fw-bold">{item.quantity}</span>
+                            <button
+                              className="btn btn-outline-success btn-sm"
+                              onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        <div className="col-md-2">
+                          <p className="fw-bold text-dark mb-0">
+                            KSh {item.price * item.quantity}
+                          </p>
+                        </div>
+                        <div className="col-md-1">
+                          <button
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => removeFromCart(item.id)}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="col-lg-4">
+                <div className="card border-0 shadow">
+                  <div className="card-body">
+                    <h5 className="card-title fw-bold text-dark mb-4">Order Summary</h5>
+                    
+                    <div className="d-flex justify-content-between mb-3">
+                      <span>Subtotal:</span>
+                      <span className="fw-bold">KSh {totalPrice}</span>
+                    </div>
+                    
+                    <div className="d-flex justify-content-between mb-3">
+                      <span>Shipping:</span>
+                      <span className="fw-bold">KSh 200</span>
+                    </div>
+                    
+                    <hr />
+                    
+                    <div className="d-flex justify-content-between mb-4">
+                      <span className="fw-bold">Total:</span>
+                      <span className="fw-bold text-success">KSh {totalPrice + 200}</span>
+                    </div>
+                    
+                    <button
+                      className="btn w-100 mb-3"
+                      style={{
+                        background: 'linear-gradient(135deg, #228B22 0%, #1B691B 100%)',
+                        color: '#fff',
+                        fontWeight: '600',
+                        padding: '0.75rem',
+                        border: 'none',
+                        borderRadius: '8px'
+                      }}
+                    >
+                      Proceed to Checkout
+                    </button>
+                    
+                    <button
+                      className="btn btn-outline-danger w-100"
+                      onClick={clearCart}
+                    >
+                      Clear Cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Enhanced Loading Screen Component
 const LoadingScreen = ({ progress }: { progress: number }) => (
@@ -177,6 +363,11 @@ const LoadingScreen = ({ progress }: { progress: number }) => (
         @keyframes pulse {
           0%, 100% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.2); opacity: 0.7; }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}
     </style>

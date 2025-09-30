@@ -1,106 +1,45 @@
-// pages/Home.tsx
-import React from 'react';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProductCard from '../components/ProductCard';
 import TestimonialCard from '../components/TestimonialCard';
 import MediaGallery from '../components/MediaGallery';
+import api from '../api/api';
+import type { Produce, Testimonial, Media, Category, Customer, Order, OrderItem, ProduceImage, NutritionInfo, HealthBenefit } from '../api/api';
+
 
 const Home = () => {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState<(Produce & { quantity?: number })[]>([]);
   const [activeTab, setActiveTab] = useState('about');
+  const [products, setProducts] = useState<Produce[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [galleryImages, setGalleryImages] = useState<Media[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Static product data
-  const featuredProducts = [
-    {
-      id: 1,
-      name: "Mangoes",
-      description: "Sweet and juicy mangoes harvested at peak ripeness",
-      price: "KSh 250/kg",
-      imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBcEnfGLLTl8WW09ESF7dP7IhYH_wshgElqxmwyBR4ha4FNSNiARBMUFglrT6BbtiZ_y0z_Z_8SWPRlWQ8eZRvXE5Ji-Up5ZX3NwxW-PH4MF42eIv8Hz4wzJJZBNzDCdGnkrg0hhiVlK_8ZywOuDt2eC7ubWCHZ5JLeu45Z902cBxxLk5aaCCZ8zgPt2H9Hd4ynS4ViQCxEh4HIuw3eUG848aPiz5zxJMsPjDqRN9HcPsjDhcxjmY7c56HvRyaa46q6KKUTmeZ6u78N",
-      category: "fruits",
-      inStock: true,
-      badge: "Organic"
-    },
-    {
-      id: 2,
-      name: "Avocados",
-      description: "Creamy and rich Hass avocados, perfect for your recipes",
-      price: "KSh 180/kg",
-      imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuA-9BbBTLkQjt3x7lrxrcEH3Y5AlA0u3oHRRLeIdji2SewnV_bJ6BUTL5_M9awX-BWtjfdtLj0Jr2g9OCf_dtZe-teEB9L8YKiqQdpSLHpz8z5DFPoWYPwRDNGtU295TXkYhBHi1GMbjLlZXjoOiePXPMt3D32bfN6gVv_B1yxtIvfvDUccW22RoRY5AuPd-uywKTvQYj7sfIYSla3v5GQl9DblSpFERwC9IQKa3msx3Tt2i6HbZ-GPyGx5NjRBtOtxLmOFpETw_DFK",
-      category: "fruits",
-      inStock: true,
-      badge: "Local Favorite"
-    },
-    {
-      id: 3,
-      name: "Macadamia Oil",
-      description: "Cold-pressed premium oil from our organic macadamia nuts",
-      price: "KSh 1200/bottle",
-      imageUrl: "https://images.unsplash.com/photo-1621277222927-84a728a5d9a0?w=500&h=400&fit=crop",
-      category: "processed",
-      inStock: true,
-      badge: "Value Added"
-    }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [produceData, testimonialsData, mediaData] = await Promise.all([
+          api.getProduceList(),
+          api.getTestimonials(),
+          api.getMedia(),
+        ]);
+        setProducts(produceData.slice(0, 3)); // Limit to 3 featured products
+        setTestimonials(testimonialsData.slice(0, 3)); // Limit to 3 testimonials
+        setGalleryImages(mediaData);
+        setLoading(false);
+      } catch (error: any) {
+        setError('Failed to load data. Please try again later.');
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  // Static testimonial data
-  const testimonials = [
-    {
-      id: 1,
-      name: "Aisha Kamau",
-      location: "Nairobi",
-      date: "2 months ago",
-      rating: 5,
-      comment: "The freshest produce I've ever had! The mangoes were incredibly sweet and the avocados were perfectly ripe. Highly recommend!",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuA3pbveEoD1dHXdT5dc99UhjnC7Ycq8f6jOEb_gScuCwqnQjPffbzKIqazJWoGCRvlZnSNWsE1ZTUOYxuv2vckQx7e8z33XtCwEnuME9VFNbppIZweND2JxHoUNkjqH5nEaQ9DyoP0BN24y8U-YA_RYJ0CO5f63B043U1FK8d0in6GX6Usv_2NtjHmRNxqjGM2v4tATAN44CQ2qlnDxzO5W-giFxvDspEMKaZRW9w2s3sbhIhYGSUJ1upZloE_RVhXBnq7SGBAn6IUgB"
-    },
-    {
-      id: 2,
-      name: "John Mwangi",
-      location: "Murang'a",
-      date: "1 month ago",
-      rating: 5,
-      comment: "As a local chef, I appreciate the quality and consistency of Wamugunda Farm products. Their sustainable practices make me proud to support them.",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
-    },
-    {
-      id: 3,
-      name: "Grace Wanjiku",
-      location: "Thika",
-      date: "3 weeks ago",
-      rating: 5,
-      comment: "The macadamia oil has transformed my cooking! Knowing it's locally produced with care makes it even more special.",
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
-    }
-  ];
+  const handleAddToCart = (product: Produce) => {
+    setCart(prev => [...prev, { ...product, quantity: 1 }]);
 
-  // Static gallery data
-  const galleryImages = [
-    {
-      id: 1,
-      url: "https://lh3.googleusercontent.com/aida-public/AB6AXuAa7ula4vPOMWjG1wDpvdxIt-zJ90OyCsIMt4x_z24iKDRwQ5cEsBTquUVX9BLpamGu8GUfCz59lk0RoIdPi9WUHN_rwnmZQliEoGGzQtG6jx7Jx6FUMy31Vi9WE1Txe_NPPwz8l2AAxzOeFZtL9JBUhrLUtYs0APiMr3aFdmaE-SrrMOyyzJm6MCR39rl-PTj4yt3_bD0nyEfIQIt83cWjuT7DNeIw7BA7z1JJ88wfdr-BBaxvBNVYmfR0kOUMlf75FYdbYOnsnGFy",
-      alt: "Farm landscape at sunrise"
-    },
-    {
-      id: 2,
-      url: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&h=400&fit=crop",
-      alt: "Harvesting fresh mangoes"
-    },
-    {
-      id: 3,
-      url: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=600&h=400&fit=crop",
-      alt: "Organic farming practices"
-    },
-    {
-      id: 4,
-      url: "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?w=600&h=400&fit=crop",
-      alt: "Community workers harvesting"
-    }
-  ];
-
-  const handleAddToCart = (product) => {
-    setCart(prev => [...prev, product]);
-    
     // Enhanced notification with better animation
     const notification = document.createElement('div');
     notification.style.position = 'fixed';
@@ -120,14 +59,14 @@ const Home = () => {
     notification.style.gap = '0.75rem';
     notification.style.fontWeight = '600';
     notification.style.borderLeft = '4px solid #1B691B';
-    
+
     notification.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M20 6L9 17l-5-5"/>
       </svg>
       ${product.name} added to cart!
     `;
-    
+
     document.body.appendChild(notification);
 
     // Slide-in animation
@@ -144,21 +83,60 @@ const Home = () => {
     }, 3000);
   };
 
+  if (loading) {
+    return (
+      <div className="text-center py-5" style={{ minHeight: '100vh' }}>
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid rgba(34, 139, 34, 0.2)',
+            borderTop: '3px solid #228B22',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto'
+          }}
+        ></div>
+        <p>Loading...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-5" style={{ minHeight: '100vh' }}>
+        <p style={{ color: '#DC3545', fontSize: '1.25rem' }}>{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="btn"
+          style={{
+            backgroundColor: '#228B22',
+            color: '#fff',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.375rem',
+            marginTop: '1rem'
+          }}
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div id="home">
-      {/* Enhanced Hero Section */}
+      {/* Hero Section */}
       <section
         className="min-vh-100 d-flex align-items-center justify-content-center text-white position-relative overflow-hidden"
         style={{
           background: 'linear-gradient(135deg, rgba(24, 33, 17, 0.85) 0%, rgba(34, 139, 34, 0.7) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuBg0sf2TILIMGeLMTzesQHuzHWc7WLLRYlTTyltXvHi2yfNM3YFFe6spaoHrH6UeZjOyzkl1V693yVXv7QFYe47_XF1JOGImqt6E1-ICZ_yRmgosmbx61rYG_iNFhlDRtPTjDdpIuC75DwagU0IQ-0MaAKc1DtcGwVcOP-s8kr_5gKn0bU6PBtrUgmmKBlsqvI1p7dEAdxk8iCGmIkEGu4JJ4XMk7KFnwgBBXkuumUQr1xBbjJSW-W9kWWboesDO2iRRzm-DSzNuEMD") center/cover',
         }}
       >
-        {/* Animated background elements */}
         <div className="position-absolute top-0 start-0 w-100 h-100" style={{
           background: 'radial-gradient(circle at 20% 80%, rgba(34, 139, 34, 0.1) 0%, transparent 50%)',
           animation: 'float 6s ease-in-out infinite'
         }}></div>
-        
         <div className="container text-center position-relative z-1">
           <div className="mb-4" style={{ animation: 'bounceIn 1s ease-out' }}>
             <div style={{
@@ -175,7 +153,6 @@ const Home = () => {
               <span style={{ fontSize: '2rem' }}>🌱</span>
             </div>
           </div>
-          
           <h1
             className="display-3 fw-bold mb-4"
             style={{
@@ -198,7 +175,7 @@ const Home = () => {
               lineHeight: '1.6'
             }}
           >
-            Wamugunda Farm: Your trusted source for fresh, organic produce in Kenya. 
+            Wamugunda Farm: Your trusted source for fresh, organic produce in Kenya.
             Discover our commitment to sustainability, community, and quality.
           </p>
           <div className="d-flex flex-column flex-sm-row gap-3 justify-content-center">
@@ -244,13 +221,11 @@ const Home = () => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
               }}
-              onClick={() => document.getElementById('about-mission').scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => document.getElementById('about-mission')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Our Story
             </button>
           </div>
-          
-          {/* Scroll indicator */}
           <div className="mt-5" style={{ animation: 'fadeIn 1s ease-out 1s' }}>
             <div style={{
               width: '30px',
@@ -295,7 +270,7 @@ const Home = () => {
               }}>
                 <h2 className="display-5 fw-bold mb-4">Our Journey</h2>
                 <p className="mb-4" style={{ fontSize: '1.1rem', lineHeight: '1.7', opacity: 0.9 }}>
-                  Wamugunda Farm was established in 1995 in Murang'a County, Central Kenya, 
+                  Wamugunda Farm was established in 1995 in Murang'a County, Central Kenya,
                   on land previously occupied by the defunct Sisal Farm near Murang'a Pioneers School.
                 </p>
                 <div className="row text-center mt-4">
@@ -314,12 +289,9 @@ const Home = () => {
                 </div>
               </div>
             </div>
-            
             <div className="col-lg-6">
               <div className="mb-5">
                 <h2 className="display-5 fw-bold mb-4 text-dark">About Our Farm</h2>
-                
-                {/* Tab Navigation */}
                 <div className="d-flex gap-2 mb-4">
                   {['about', 'mission', 'values'].map((tab) => (
                     <button
@@ -340,13 +312,11 @@ const Home = () => {
                     </button>
                   ))}
                 </div>
-                
-                {/* Tab Content */}
                 <div style={{ minHeight: '200px' }}>
                   {activeTab === 'about' && (
                     <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
                       <p className="lead text-muted mb-4">
-                        Spanning about 10 hectares, part of which is rocky terrain ideal for mangoes and other fruits, 
+                        Spanning about 10 hectares, part of which is rocky terrain ideal for mangoes and other fruits,
                         our farm began with a vision for environmental restoration.
                       </p>
                       <ul className="list-unstyled">
@@ -369,11 +339,10 @@ const Home = () => {
                       </ul>
                     </div>
                   )}
-                  
                   {activeTab === 'mission' && (
                     <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
                       <p className="lead text-muted mb-4">
-                        Wamugunda Farm isn't just about food — it's about climate restoration, 
+                        Wamugunda Farm isn't just about food — it's about climate restoration,
                         community empowerment, and nourishing families with safe, wholesome produce.
                       </p>
                       <div className="row">
@@ -404,7 +373,6 @@ const Home = () => {
                       </div>
                     </div>
                   )}
-                  
                   {activeTab === 'values' && (
                     <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
                       <p className="lead text-muted mb-4">
@@ -437,7 +405,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Enhanced Featured Products */}
+      {/* Featured Products */}
       <section
         className="py-5 position-relative"
         style={{ backgroundColor: '#fff' }}
@@ -455,7 +423,7 @@ const Home = () => {
             </p>
           </div>
           <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            {featuredProducts.map((product, index) => (
+            {products.map((product, index) => (
               <div
                 key={product.id}
                 className="col"
@@ -471,11 +439,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Enhanced Testimonials */}
+      {/* Testimonials */}
       <section
         id="testimonials"
         className="py-5"
-        style={{ 
+        style={{
           background: 'linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%)'
         }}
       >
@@ -507,7 +475,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Enhanced Gallery */}
+      {/* Gallery */}
       <MediaGallery
         images={galleryImages}
         title="Experience Our Farm"

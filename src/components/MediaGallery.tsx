@@ -1,8 +1,8 @@
-// components/MediaGallery.tsx
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api/api';
+import type { Produce, Testimonial, Media, Category, Customer, Order, OrderItem, ProduceImage, NutritionInfo, HealthBenefit } from '../api/api';
 
-const MediaGallery = ({ images, title = "Gallery", description }) => {
+const MediaGallery = ({ images = [], title = "Gallery", description }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loadedImages, setLoadedImages] = useState({});
@@ -14,6 +14,9 @@ const MediaGallery = ({ images, title = "Gallery", description }) => {
       img.src = image.url;
       img.onload = () => {
         setLoadedImages(prev => ({ ...prev, [image.id]: true }));
+      };
+      img.onerror = () => {
+        setLoadedImages(prev => ({ ...prev, [image.id]: false }));
       };
     });
   }, [images]);
@@ -101,111 +104,117 @@ const MediaGallery = ({ images, title = "Gallery", description }) => {
         </div>
         
         {/* Gallery Grid */}
-        <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
-          {images.map((image, index) => (
-            <div 
-              key={image.id} 
-              className="col"
-              style={{ 
-                animation: `scaleIn 0.6s ease-out ${index * 0.1}s both`
-              }}
-            >
-              <div
-                className="gallery-item"
-                style={{
-                  backgroundImage: `url(${image.url})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  borderRadius: '16px',
-                  aspectRatio: '1/1',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+        {images.length === 0 ? (
+          <p style={{ textAlign: 'center', color: 'rgba(47, 79, 79, 0.8)' }}>
+            No images available.
+          </p>
+        ) : (
+          <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+            {images.map((image, index) => (
+              <div 
+                key={image.id} 
+                className="col"
+                style={{ 
+                  animation: `scaleIn 0.6s ease-out ${index * 0.1}s both`
                 }}
-                onClick={() => openModal(image, index)}
               >
-                {/* Loading Skeleton */}
-                {!loadedImages[image.id] && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(34, 139, 34, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '16px'
-                  }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      border: '3px solid rgba(34, 139, 34, 0.2)',
-                      borderTop: '3px solid #228B22',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                  </div>
-                )}
-
-                {/* Hover Overlay */}
                 <div
-                  className="gallery-overlay"
+                  className="gallery-item"
                   style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    background: 'linear-gradient(135deg, rgba(34, 139, 34, 0.9) 0%, rgba(27, 105, 27, 0.8) 100%)',
-                    opacity: 0,
-                    transition: 'all 0.3s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column',
-                    padding: '1rem',
-                    textAlign: 'center'
+                    backgroundImage: `url(${image.url})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderRadius: '16px',
+                    aspectRatio: '1/1',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
+                  onClick={() => openModal(image, index)}
                 >
-                  <div style={{
-                    color: '#fff',
-                    fontSize: '1.5rem',
-                    marginBottom: '0.5rem',
-                    transform: 'translateY(20px)',
-                    transition: 'transform 0.3s ease'
-                  }}>🔍</div>
-                  <p style={{
-                    color: '#fff',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    margin: 0,
-                    transform: 'translateY(20px)',
-                    transition: 'transform 0.3s ease 0.1s',
-                    opacity: 0
-                  }}>
-                    Click to view
-                  </p>
-                  {image.caption && (
-                    <p style={{
-                      color: 'rgba(255, 255, 255, 0.9)',
-                      fontSize: '0.8rem',
-                      margin: '0.5rem 0 0 0',
+                  {/* Loading Skeleton */}
+                  {!loadedImages[image.id] && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: 'rgba(34, 139, 34, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '16px'
+                    }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        border: '3px solid rgba(34, 139, 34, 0.2)',
+                        borderTop: '3px solid #228B22',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></div>
+                    </div>
+                  )}
+
+                  {/* Hover Overlay */}
+                  <div
+                    className="gallery-overlay"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      background: 'linear-gradient(135deg, rgba(34, 139, 34, 0.9) 0%, rgba(27, 105, 27, 0.8) 100%)',
+                      opacity: 0,
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'column',
+                      padding: '1rem',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <div style={{
+                      color: '#fff',
+                      fontSize: '1.5rem',
+                      marginBottom: '0.5rem',
                       transform: 'translateY(20px)',
-                      transition: 'transform 0.3s ease 0.2s',
+                      transition: 'transform 0.3s ease'
+                    }}>🔍</div>
+                    <p style={{
+                      color: '#fff',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      margin: 0,
+                      transform: 'translateY(20px)',
+                      transition: 'transform 0.3s ease 0.1s',
                       opacity: 0
                     }}>
-                      {image.caption}
+                      Click to view
                     </p>
-                  )}
+                    {image.caption && (
+                      <p style={{
+                        color: 'rgba(255, 255, 255, 0.9)',
+                        fontSize: '0.8rem',
+                        margin: '0.5rem 0 0 0',
+                        transform: 'translateY(20px)',
+                        transition: 'transform 0.3s ease 0.2s',
+                        opacity: 0
+                      }}>
+                        {image.caption}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Enhanced Image Modal */}
         {selectedImage && (
@@ -365,6 +374,9 @@ const MediaGallery = ({ images, title = "Gallery", description }) => {
                     boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
                     animation: 'zoomIn 0.3s ease-out'
                   }}
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://via.placeholder.com/400';
+                  }}
                 />
                 
                 {/* Image Info */}
@@ -448,7 +460,7 @@ const MediaGallery = ({ images, title = "Gallery", description }) => {
             .modal-backdrop button {
               width: 40px !important;
               height: 40px !important;
-              font-size: 1.25rem !important;
+              fontSize: 1.25rem !important;
             }
             
             .modal-backdrop button:first-of-type {
@@ -460,7 +472,7 @@ const MediaGallery = ({ images, title = "Gallery", description }) => {
             .modal-backdrop button:nth-of-type(3) {
               width: 45px !important;
               height: 45px !important;
-              font-size: 1.25rem !important;
+              fontSize: 1.25rem !important;
             }
             
             .modal-backdrop button:nth-of-type(2) {
