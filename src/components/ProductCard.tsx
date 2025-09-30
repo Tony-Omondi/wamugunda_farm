@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/api';
-import type { Produce, Testimonial, Media, Category, Customer, Order, OrderItem, ProduceImage, NutritionInfo, HealthBenefit } from '../api/api';
+import type { Produce } from '../api/api';
+import { useCart } from '../context/CartContext';
 
 interface ProductCardProps {
   product: Produce;
-  onAddToCart: (product: Produce) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    if (onAddToCart && product.available) {
+    if (product.available) {
       setIsAddingToCart(true);
-      await new Promise(resolve => setTimeout(resolve, 600));
-      onAddToCart(product);
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      addToCart(product);
       setIsAddingToCart(false);
     }
   };
@@ -33,14 +33,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.src = 'https://www.flaticon.com/free-icon/organic_5267982?term=organic+product&page=1&position=4&origin=search&related_id=5267982';
+    e.currentTarget.src =
+      'https://www.flaticon.com/free-icon/organic_5267982?term=organic+product&page=1&position=4&origin=search&related_id=5267982';
   };
 
-  // Use the first image from product.images if available, else fall back to product.image
-  const primaryImage = product.images?.[0]?.url || product.image || 'https://www.flaticon.com/free-icon/organic_5267982?term=organic+product&page=1&position=4&origin=search&related_id=5267982';
-  const primaryAlt = product.images?.[0]?.alt || product.name || 'Product Image';
+  const primaryImage =
+    product.images?.[0]?.image ||
+    product.image ||
+    'https://www.flaticon.com/free-icon/organic_5267982?term=organic+product&page=1&position=4&origin=search&related_id=5267982';
+  const primaryAlt = product.images?.[0]?.alt_text || product.name || 'Product Image';
 
-  // Convert price and original_price to numbers for toFixed, with fallbacks
   const price = parseFloat(product.price) || 0;
   const originalPrice = product.original_price ? parseFloat(product.original_price) : null;
 
@@ -58,10 +60,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         transition: 'box-shadow 0.3s ease, transform 0.3s ease',
         transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
-        animation: 'fadeIn 0.8s ease-out'
+        animation: 'fadeIn 0.8s ease-out',
       }}
     >
-      {/* Product Badges */}
       <div className="position-absolute top-0 start-0 d-flex flex-column gap-2 p-2" style={{ zIndex: 2 }}>
         {product.badge && (
           <span
@@ -72,7 +73,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
               fontSize: '0.75rem',
               padding: '0.5rem 0.75rem',
               borderRadius: '0.25rem',
-              fontWeight: '600'
+              fontWeight: '600',
             }}
           >
             {product.badge}
@@ -87,7 +88,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
               fontSize: '0.75rem',
               padding: '0.5rem 0.75rem',
               borderRadius: '0.25rem',
-              fontWeight: '600'
+              fontWeight: '600',
             }}
           >
             Out of Stock
@@ -95,7 +96,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         )}
       </div>
 
-      {/* Product Image */}
       <div className="position-relative" style={{ height: '250px', overflow: 'hidden' }}>
         {!isImageLoaded && (
           <div
@@ -108,7 +108,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
               backgroundColor: 'rgba(34, 139, 34, 0.1)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
             }}
           >
             <div
@@ -118,7 +118,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                 border: '3px solid rgba(34, 139, 34, 0.2)',
                 borderTop: '3px solid #228B22',
                 borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
+                animation: 'spin 1s linear infinite',
               }}
             ></div>
           </div>
@@ -135,7 +135,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
             objectFit: 'cover',
             transition: 'transform 0.4s ease',
             transform: isHovered ? 'scale(1.1)' : 'scale(1)',
-            opacity: isImageLoaded ? 1 : 0
+            opacity: isImageLoaded ? 1 : 0,
           }}
         />
         <div
@@ -150,7 +150,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
             alignItems: 'center',
             justifyContent: 'center',
             opacity: isHovered ? 1 : 0,
-            transition: 'opacity 0.3s ease'
+            transition: 'opacity 0.3s ease',
           }}
         >
           <span
@@ -162,7 +162,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
               border: '2px solid #fff',
               borderRadius: '0.25rem',
               transition: 'transform 0.3s ease',
-              transform: isHovered ? 'translateY(0)' : 'translateY(10px)'
+              transform: isHovered ? 'translateY(0)' : 'translateY(10px)',
             }}
           >
             Quick View
@@ -170,7 +170,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         </div>
       </div>
 
-      {/* Card Body */}
       <div className="card-body d-flex flex-column" style={{ padding: '1rem' }}>
         <span
           style={{
@@ -179,7 +178,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
             fontWeight: '600',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
-            marginBottom: '0.5rem'
+            marginBottom: '0.5rem',
           }}
         >
           {product.category?.name || 'Unknown Category'}
@@ -190,7 +189,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
             fontWeight: '700',
             color: '#2F4F4F',
             marginBottom: '0.75rem',
-            lineHeight: '1.3'
+            lineHeight: '1.3',
           }}
         >
           {product.name || 'Unnamed Product'}
@@ -201,7 +200,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
             color: 'rgba(47, 79, 79, 0.7)',
             flexGrow: 1,
             marginBottom: '1rem',
-            lineHeight: '1.5'
+            lineHeight: '1.5',
           }}
         >
           {product.description || 'No description available.'}
@@ -214,7 +213,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                   key={star}
                   style={{
                     color: star <= Math.round(product.rating) ? '#FFD700' : '#E5E7EB',
-                    fontSize: '0.875rem'
+                    fontSize: '0.875rem',
                   }}
                 >
                   ★
@@ -237,7 +236,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                   fontSize: '0.875rem',
                   color: 'rgba(47, 79, 79, 0.5)',
                   textDecoration: 'line-through',
-                  marginLeft: '0.5rem'
+                  marginLeft: '0.5rem',
                 }}
               >
                 KSh {originalPrice.toFixed(2)}
@@ -257,7 +256,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                 height: '40px',
                 border: 'none',
                 transition: 'background-color 0.3s, transform 0.2s',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
               }}
               onMouseOver={(e) => {
                 if (!isAddingToCart) {
@@ -280,7 +279,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                     border: '2px solid transparent',
                     borderTop: '2px solid #fff',
                     borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite'
+                    animation: 'spin 0.8s linear infinite',
                   }}
                 ></div>
               ) : (
@@ -296,7 +295,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                 fontSize: '0.75rem',
                 padding: '0.5rem 0.75rem',
                 borderRadius: '0.25rem',
-                fontWeight: '600'
+                fontWeight: '600',
               }}
             >
               Out of Stock

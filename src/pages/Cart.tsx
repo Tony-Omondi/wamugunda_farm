@@ -1,7 +1,15 @@
-// components/Cart.tsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 
-const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCheckout }) => {
+interface CartProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const Cart: React.FC<CartProps> = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
+  const { cartItems, updateQuantity, removeItem } = useCart();
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
@@ -11,6 +19,9 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
     } else {
       document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen]);
 
   const handleClose = () => {
@@ -19,15 +30,22 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
   };
 
   const totalPrice = cartItems.reduce((total, item) => {
-    const price = parseFloat(item.price.replace(/[^\d.]/g, ''));
-    return total + (price * item.quantity);
+    const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+    return total + (price || 0) * item.quantity;
   }, 0);
+
+  const handleCheckout = () => {
+    if (cartItems.length === 0) {
+      alert('Your cart is empty!');
+      return;
+    }
+    navigate('/checkout', { state: { cartItems, totalPrice } });
+  };
 
   if (!isOpen && !isAnimating) return null;
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={`position-fixed top-0 start-0 w-100 h-100 ${isOpen ? 'visible' : 'invisible'}`}
         style={{
@@ -35,12 +53,10 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
           backdropFilter: 'blur(4px)',
           zIndex: 1040,
           transition: 'all 0.3s ease',
-          opacity: isOpen ? 1 : 0
+          opacity: isOpen ? 1 : 0,
         }}
         onClick={handleClose}
       ></div>
-
-      {/* Cart Sidebar */}
       <div
         className="position-fixed top-0 end-0 h-100 bg-white d-flex flex-column"
         style={{
@@ -49,10 +65,9 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
           zIndex: 1050,
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)'
+          boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
         }}
       >
-        {/* Header */}
         <div className="d-flex align-items-center justify-content-between p-4 border-bottom">
           <h4 style={{ fontWeight: '700', color: '#2F4F4F', margin: 0 }}>
             Shopping Cart ({cartItems.length})
@@ -63,16 +78,14 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
             style={{
               color: '#2F4F4F',
               borderRadius: '8px',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
             }}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(34, 139, 34, 0.1)'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(34, 139, 34, 0.1)')}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>×</span>
           </button>
         </div>
-
-        {/* Cart Items */}
         <div className="flex-grow-1 overflow-auto p-4">
           {cartItems.length === 0 ? (
             <div className="text-center py-5">
@@ -87,7 +100,7 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
                   color: '#fff',
                   fontWeight: '600',
                   padding: '0.75rem 2rem',
-                  borderRadius: '25px'
+                  borderRadius: '25px',
                 }}
               >
                 Continue Shopping
@@ -101,17 +114,20 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
                   className="d-flex gap-3 p-3 rounded"
                   style={{
                     border: '1px solid rgba(34, 139, 34, 0.1)',
-                    backgroundColor: 'rgba(34, 139, 34, 0.02)'
+                    backgroundColor: 'rgba(34, 139, 34, 0.02)',
                   }}
                 >
                   <img
-                    src={item.imageUrl}
+                    src={item.image}
                     alt={item.name}
                     style={{
                       width: '80px',
                       height: '80px',
                       objectFit: 'cover',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://via.placeholder.com/80';
                     }}
                   />
                   <div className="flex-grow-1">
@@ -119,12 +135,12 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
                       {item.name}
                     </h6>
                     <p style={{ color: '#228B22', fontWeight: '600', marginBottom: '0.5rem' }}>
-                      {item.price}
+                      KSh {(typeof item.price === 'string' ? parseFloat(item.price) : item.price).toFixed(2)}
                     </p>
                     <div className="d-flex align-items-center gap-3">
                       <div className="d-flex align-items-center gap-2">
                         <button
-                          onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
                           className="btn p-1"
                           style={{
                             width: '32px',
@@ -132,7 +148,7 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
                             borderRadius: '6px',
                             border: '1px solid rgba(34, 139, 34, 0.3)',
                             color: '#228B22',
-                            fontSize: '1.2rem'
+                            fontSize: '1.2rem',
                           }}
                         >
                           -
@@ -141,7 +157,7 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
                           className="btn p-1"
                           style={{
                             width: '32px',
@@ -149,18 +165,18 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
                             borderRadius: '6px',
                             border: '1px solid rgba(34, 139, 34, 0.3)',
                             color: '#228B22',
-                            fontSize: '1.2rem'
+                            fontSize: '1.2rem',
                           }}
                         >
                           +
                         </button>
                       </div>
                       <button
-                        onClick={() => onRemoveItem(item.id)}
+                        onClick={() => removeItem(item.id)}
                         className="btn p-1 ms-auto"
                         style={{
                           color: '#DC3545',
-                          fontSize: '0.875rem'
+                          fontSize: '0.875rem',
                         }}
                       >
                         Remove
@@ -172,8 +188,6 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
             </div>
           )}
         </div>
-
-        {/* Footer */}
         {cartItems.length > 0 && (
           <div className="border-top p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -183,7 +197,7 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
               </span>
             </div>
             <button
-              onClick={onCheckout}
+              onClick={handleCheckout}
               className="btn w-100"
               style={{
                 background: 'linear-gradient(135deg, #228B22 0%, #1B691B 100%)',
@@ -191,7 +205,7 @@ const Cart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onCh
                 fontWeight: '600',
                 padding: '0.75rem',
                 borderRadius: '12px',
-                fontSize: '1rem'
+                fontSize: '1rem',
               }}
             >
               Proceed to Checkout

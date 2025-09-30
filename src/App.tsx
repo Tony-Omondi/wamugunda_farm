@@ -1,20 +1,22 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { CartProvider, useCart } from './context/CartContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import Cart from './pages/Cart';
+import Checkout from './components/Checkout';
+import Success from './components/Success';
 
-// Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'));
 const Shop = lazy(() => import('./pages/Shop'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
-const Cart = lazy(() => import('./pages/Cart')); // Add Cart import
 
-function App() {
+const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
-    // Simulate loading progress
     const progressTimer = setInterval(() => {
       setProgress(prev => {
         if (prev >= 90) {
@@ -41,221 +43,49 @@ function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <Router>
-        <div className="min-vh-100 d-flex flex-column">
-          <Header />
-          <main className="flex-grow-1">
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/shop" element={<Shop />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/cart" element={<CartPage />} /> {/* Add Cart route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </main>
-          <Footer />
-        </div>
-      </Router>
-    </ErrorBoundary>
+    <CartProvider>
+      <ErrorBoundary>
+        <Router>
+          <AppContent isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen} />
+        </Router>
+      </ErrorBoundary>
+    </CartProvider>
   );
-}
+};
 
-// Cart Page Component (if you want a dedicated cart page)
-const CartPage: React.FC = () => {
-  const [cartItems, setCartItems] = useState<any[]>([]);
-
-  // Load cart items from localStorage or context
-  useEffect(() => {
-    // You can replace this with context or state management
-    const savedCart = localStorage.getItem('cartItems');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
-  }, []);
-
-  const updateCartQuantity = (id: number, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(id);
-      return;
-    }
-    setCartItems(prevItems => {
-      const updatedItems = prevItems.map(item =>
-        item.id === id ? { ...item, quantity } : item
-      );
-      localStorage.setItem('cartItems', JSON.stringify(updatedItems));
-      return updatedItems;
-    });
-  };
-
-  const removeFromCart = (id: number) => {
-    setCartItems(prevItems => {
-      const filteredItems = prevItems.filter(item => item.id !== id);
-      localStorage.setItem('cartItems', JSON.stringify(filteredItems));
-      return filteredItems;
-    });
-  };
-
-  const clearCart = () => {
-    setCartItems([]);
-    localStorage.removeItem('cartItems');
-  };
-
-  const totalPrice = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+const AppContent: React.FC<{ isCartOpen: boolean; setIsCartOpen: (open: boolean) => void }> = ({ isCartOpen, setIsCartOpen }) => {
+  const { cartItems } = useCart();
 
   return (
-    <div className="container py-5">
-      <div className="row">
-        <div className="col-12">
-          <h1 className="display-4 fw-bold text-dark mb-4">Your Shopping Cart</h1>
-          
-          {cartItems.length === 0 ? (
-            <div className="text-center py-5">
-              <div className="mb-4" style={{ fontSize: '4rem' }}>🛒</div>
-              <h3 className="text-dark mb-3">Your cart is empty</h3>
-              <p className="text-muted mb-4">
-                Discover our fresh produce and add items to your cart.
-              </p>
-              <a
-                href="/shop"
-                className="btn"
-                style={{
-                  background: 'linear-gradient(135deg, #228B22 0%, #1B691B 100%)',
-                  color: '#fff',
-                  fontWeight: '600',
-                  padding: '0.75rem 2rem',
-                  borderRadius: '50px',
-                  border: 'none',
-                  textDecoration: 'none',
-                  display: 'inline-block'
-                }}
-              >
-                Start Shopping
-              </a>
-            </div>
-          ) : (
-            <div className="row">
-              <div className="col-lg-8">
-                {cartItems.map(item => (
-                  <div key={item.id} className="card mb-3 border-0 shadow-sm">
-                    <div className="card-body">
-                      <div className="row align-items-center">
-                        <div className="col-md-2">
-                          <img 
-                            src={item.image} 
-                            alt={item.name}
-                            className="img-fluid rounded"
-                            style={{
-                              width: '80px',
-                              height: '80px',
-                              objectFit: 'cover'
-                            }}
-                          />
-                        </div>
-                        <div className="col-md-4">
-                          <h5 className="card-title text-dark mb-1">{item.name}</h5>
-                          <p className="text-success mb-0 fw-bold">KSh {item.price}</p>
-                        </div>
-                        <div className="col-md-3">
-                          <div className="d-flex align-items-center gap-2">
-                            <button
-                              className="btn btn-outline-success btn-sm"
-                              onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
-                              disabled={item.quantity <= 1}
-                            >
-                              -
-                            </button>
-                            <span className="fw-bold">{item.quantity}</span>
-                            <button
-                              className="btn btn-outline-success btn-sm"
-                              onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                        <div className="col-md-2">
-                          <p className="fw-bold text-dark mb-0">
-                            KSh {item.price * item.quantity}
-                          </p>
-                        </div>
-                        <div className="col-md-1">
-                          <button
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => removeFromCart(item.id)}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="col-lg-4">
-                <div className="card border-0 shadow">
-                  <div className="card-body">
-                    <h5 className="card-title fw-bold text-dark mb-4">Order Summary</h5>
-                    
-                    <div className="d-flex justify-content-between mb-3">
-                      <span>Subtotal:</span>
-                      <span className="fw-bold">KSh {totalPrice}</span>
-                    </div>
-                    
-                    <div className="d-flex justify-content-between mb-3">
-                      <span>Shipping:</span>
-                      <span className="fw-bold">KSh 200</span>
-                    </div>
-                    
-                    <hr />
-                    
-                    <div className="d-flex justify-content-between mb-4">
-                      <span className="fw-bold">Total:</span>
-                      <span className="fw-bold text-success">KSh {totalPrice + 200}</span>
-                    </div>
-                    
-                    <button
-                      className="btn w-100 mb-3"
-                      style={{
-                        background: 'linear-gradient(135deg, #228B22 0%, #1B691B 100%)',
-                        color: '#fff',
-                        fontWeight: '600',
-                        padding: '0.75rem',
-                        border: 'none',
-                        borderRadius: '8px'
-                      }}
-                    >
-                      Proceed to Checkout
-                    </button>
-                    
-                    <button
-                      className="btn btn-outline-danger w-100"
-                      onClick={clearCart}
-                    >
-                      Clear Cart
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="min-vh-100 d-flex flex-column">
+      <Header setCartOpen={setIsCartOpen} cartItemCount={cartItems.length} />
+      <main className="flex-grow-1">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/success" element={<Success />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </main>
+      <Footer />
+      <Cart
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+      />
     </div>
   );
 };
 
-// Enhanced Loading Screen Component
 const LoadingScreen = ({ progress }: { progress: number }) => (
   <div className="d-flex justify-content-center align-items-center min-vh-100" style={{
     background: 'linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%)',
     fontFamily: 'system-ui, -apple-system, sans-serif'
   }}>
     <div className="text-center" style={{ maxWidth: '320px', padding: '2rem' }}>
-      {/* Animated Logo */}
       <div className="mb-4" style={{ animation: 'bounceIn 1s ease-out' }}>
         <div style={{
           width: '80px',
@@ -270,8 +100,6 @@ const LoadingScreen = ({ progress }: { progress: number }) => (
           <span style={{ fontSize: '2rem', color: 'white' }}>🌱</span>
         </div>
       </div>
-
-      {/* Brand Text */}
       <h3 style={{ 
         fontWeight: '800', 
         color: '#2F4F4F',
@@ -288,8 +116,6 @@ const LoadingScreen = ({ progress }: { progress: number }) => (
       }}>
         From Soil to Soul
       </p>
-
-      {/* Progress Bar */}
       <div style={{
         width: '200px',
         height: '6px',
@@ -308,8 +134,6 @@ const LoadingScreen = ({ progress }: { progress: number }) => (
           boxShadow: '0 2px 8px rgba(34, 139, 34, 0.3)'
         }}></div>
       </div>
-
-      {/* Loading Text */}
       <p style={{ 
         fontSize: '0.875rem',
         color: 'rgba(47, 79, 79, 0.7)',
@@ -320,8 +144,6 @@ const LoadingScreen = ({ progress }: { progress: number }) => (
         {progress >= 50 && progress < 80 && 'Loading farm goodness...'}
         {progress >= 80 && 'Almost ready...'}
       </p>
-
-      {/* Animated Dots */}
       <div style={{ 
         marginTop: '1rem',
         animation: 'slideUp 0.8s ease-out 0.6s both'
@@ -345,7 +167,6 @@ const LoadingScreen = ({ progress }: { progress: number }) => (
         </div>
       </div>
     </div>
-
     <style>
       {`
         @keyframes bounceIn {
@@ -354,17 +175,14 @@ const LoadingScreen = ({ progress }: { progress: number }) => (
           70% { transform: scale(0.9); }
           100% { opacity: 1; transform: scale(1); }
         }
-        
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
         @keyframes pulse {
           0%, 100% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.2); opacity: 0.7; }
         }
-        
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -374,7 +192,6 @@ const LoadingScreen = ({ progress }: { progress: number }) => (
   </div>
 );
 
-// Page Loader for Suspense fallback
 const PageLoader = () => (
   <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
     <div className="text-center">
@@ -392,7 +209,6 @@ const PageLoader = () => (
   </div>
 );
 
-// 404 Not Found Page
 const NotFound = () => (
   <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
     <div className="text-center">
@@ -434,7 +250,6 @@ const NotFound = () => (
   </div>
 );
 
-// Error Boundary Component
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; error?: Error }

@@ -2,15 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/api';
 import type { Produce } from '../api/api';
+import { useCart } from '../context/CartContext';
 
-interface ProductDetailProps {
-  cart: Array<Produce & { quantity: number }>;
-  setCart: React.Dispatch<React.SetStateAction<Array<Produce & { quantity: number }>>>;
-}
-
-const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
+const ProductDetail: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState<Produce | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Produce[]>([]);
   const [quantity, setQuantity] = useState(1);
@@ -31,7 +28,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
         setProduct(productData);
         setRelatedProducts(
           produceData
-            .filter(p => p.category?.name === productData.category?.name && p.id !== productData.id)
+            .filter((p) => p.category?.name === productData.category?.name && p.id !== productData.id)
             .slice(0, 3)
         );
         setLoading(false);
@@ -45,7 +42,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
 
   const handleAddToCart = () => {
     if (!product) return;
-    setCart(prev => [...prev, { ...product, quantity }]);
+    if (product.stock_quantity < quantity) {
+      setNotification({
+        message: `Only ${product.stock_quantity} ${product.name} available in stock!`,
+        type: 'error',
+      });
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+    addToCart(product, quantity);
     setNotification({
       message: `${quantity} ${product.name} added to cart!`,
       type: 'success',
@@ -53,13 +58,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleBuyNow = () => {
-    handleAddToCart();
-    setTimeout(() => navigate('/cart'), 500);
-  };
-
-  const incrementQuantity = () => setQuantity(prev => prev + 1);
-  const decrementQuantity = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
+  const incrementQuantity = () => setQuantity((prev) => prev + 1);
+  const decrementQuantity = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
 
   if (loading) {
     return (
@@ -72,7 +72,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
             borderTop: '3px solid #228B22',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
-            margin: '0 auto'
+            margin: '0 auto',
           }}
         ></div>
         <p>Loading...</p>
@@ -84,9 +84,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
   if (error || !product) {
     return (
       <div className="text-center py-5" style={{ minHeight: '100vh' }}>
-        <p style={{ color: '#DC3545', fontSize: '1.25rem' }}>
-          {error || 'Product not found.'}
-        </p>
+        <p style={{ color: '#DC3545', fontSize: '1.25rem' }}>{error || 'Product not found.'}</p>
         <button
           onClick={() => navigate('/')}
           className="btn"
@@ -95,16 +93,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
             color: '#fff',
             padding: '0.5rem 1rem',
             borderRadius: '0.375rem',
-            marginTop: '1rem'
+            marginTop: '1rem',
           }}
         >
-          Back to Shop
+          Back to Home
         </button>
       </div>
     );
   }
 
-  // Convert price and original_price to numbers for toFixed, with fallbacks
   const price = parseFloat(product.price) || 0;
   const originalPrice = product.original_price ? parseFloat(product.original_price) : null;
 
@@ -119,7 +116,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
             textDecoration: 'none',
             fontSize: '1rem',
             transition: 'color 0.3s',
-            animation: 'fadeIn 0.8s ease-out'
+            animation: 'fadeIn 0.8s ease-out',
           }}
           onMouseOver={(e) => (e.currentTarget.style.color = '#1B691B')}
           onMouseOut={(e) => (e.currentTarget.style.color = '#228B22')}
@@ -151,7 +148,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                       background: '#f8f9fa',
                       cursor: 'pointer',
                       border: selectedImage === index ? '3px solid #228B22' : '1px solid #dee2e6',
-                      transition: 'all 0.3s ease'
+                      transition: 'all 0.3s ease',
                     }}
                     onMouseOver={(e) => {
                       if (selectedImage !== index) {
@@ -187,7 +184,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                   color: '#fff',
                   fontSize: '0.875rem',
                   padding: '0.5rem 0.75rem',
-                  borderRadius: '0.25rem'
+                  borderRadius: '0.25rem',
                 }}
               >
                 {product.available ? 'In Stock' : 'Out of Stock'}
@@ -200,7 +197,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                     color: '#fff',
                     fontSize: '0.875rem',
                     padding: '0.5rem 0.75rem',
-                    borderRadius: '0.25rem'
+                    borderRadius: '0.25rem',
                   }}
                 >
                   Organic
@@ -214,7 +211,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                   fontSize: '0.875rem',
                   padding: '0.5rem 0.75rem',
                   borderRadius: '0.25rem',
-                  textTransform: 'capitalize'
+                  textTransform: 'capitalize',
                 }}
               >
                 {product.category?.name || 'Unknown Category'}
@@ -227,7 +224,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                     color: '#2F4F4F',
                     fontSize: '0.875rem',
                     padding: '0.5rem 0.75rem',
-                    borderRadius: '0.25rem'
+                    borderRadius: '0.25rem',
                   }}
                 >
                   {product.badge}
@@ -241,7 +238,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                 fontWeight: '700',
                 color: '#2F4F4F',
                 marginBottom: '1rem',
-                animation: 'slideUp 0.8s ease-out'
+                animation: 'slideUp 0.8s ease-out',
               }}
             >
               {product.name || 'Unnamed Product'}
@@ -255,7 +252,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                       key={star}
                       style={{
                         color: star <= Math.round(product.rating) ? '#FFD700' : '#E5E7EB',
-                        fontSize: '1rem'
+                        fontSize: '1rem',
                       }}
                     >
                       ★
@@ -278,7 +275,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                     fontSize: '1.25rem',
                     color: 'rgba(47, 79, 79, 0.5)',
                     textDecoration: 'line-through',
-                    marginLeft: '0.5rem'
+                    marginLeft: '0.5rem',
                   }}
                 >
                   KSh {originalPrice.toFixed(2)}
@@ -292,7 +289,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                     color: '#fff',
                     fontSize: '0.875rem',
                     padding: '0.25rem 0.5rem',
-                    marginLeft: '0.5rem'
+                    marginLeft: '0.5rem',
                   }}
                 >
                   Save {((1 - price / originalPrice) * 100).toFixed(0)}%
@@ -305,7 +302,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                 fontSize: '1.25rem',
                 color: 'rgba(47, 79, 79, 0.7)',
                 marginBottom: '1.5rem',
-                animation: 'slideUp 0.8s ease-out 0.3s'
+                animation: 'slideUp 0.8s ease-out 0.3s',
               }}
             >
               {product.description || 'No description available.'}
@@ -350,7 +347,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                     fontWeight: '700',
                     padding: '0.75rem 1.5rem',
                     borderRadius: '0.375rem',
-                    transition: 'background-color 0.3s, transform 0.2s'
+                    transition: 'background-color 0.3s, transform 0.2s',
                   }}
                   onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#1B691B')}
                   onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#228B22')}
@@ -358,26 +355,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                   onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                 >
                   <span className="bi bi-cart me-2"></span>Add to Cart
-                </button>
-                <button
-                  onClick={handleBuyNow}
-                  className="btn flex-fill"
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: '#228B22',
-                    border: '2px solid #228B22',
-                    fontSize: '1rem',
-                    fontWeight: '700',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '0.375rem',
-                    transition: 'background-color 0.3s, transform 0.2s'
-                  }}
-                  onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(34, 139, 34, 0.1)')}
-                  onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                  onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
-                  onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                >
-                  <span className="bi bi-lightning-fill me-2"></span>Buy Now
                 </button>
               </div>
             )}
@@ -387,7 +364,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                 className="d-flex align-items-center gap-3 p-3 rounded"
                 style={{
                   backgroundColor: 'rgba(34, 139, 34, 0.05)',
-                  animation: 'slideUp 0.8s ease-out 0.6s'
+                  animation: 'slideUp 0.8s ease-out 0.6s',
                 }}
               >
                 <span style={{ fontSize: '1.5rem' }}>🚚</span>
@@ -412,7 +389,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                           fontSize: '1.5rem',
                           fontWeight: '700',
                           color: '#2F4F4F',
-                          marginBottom: '1rem'
+                          marginBottom: '1rem',
                         }}
                       >
                         Product Details
@@ -422,7 +399,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                           style={{
                             fontSize: '1rem',
                             color: 'rgba(47, 79, 79, 0.7)',
-                            marginBottom: '1.5rem'
+                            marginBottom: '1.5rem',
                           }}
                         >
                           {product.details}
@@ -454,7 +431,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                               fontSize: '1.5rem',
                               fontWeight: '700',
                               color: '#2F4F4F',
-                              marginBottom: '1rem'
+                              marginBottom: '1rem',
                             }}
                           >
                             Nutritional Information
@@ -484,7 +461,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                               fontWeight: '600',
                               color: '#2F4F4F',
                               marginTop: '1.5rem',
-                              marginBottom: '1rem'
+                              marginBottom: '1rem',
                             }}
                           >
                             Storage Tips
@@ -509,7 +486,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                   fontWeight: '700',
                   color: '#2F4F4F',
                   marginBottom: '1.5rem',
-                  animation: 'fadeIn 0.8s ease-out'
+                  animation: 'fadeIn 0.8s ease-out',
                 }}
               >
                 You Might Also Like
@@ -527,12 +504,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
                         border: '1px solid rgba(34, 139, 34, 0.2)',
                         cursor: 'pointer',
                         borderRadius: '0.375rem',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                       }}
                       onClick={() => navigate(`/product/${relatedProduct.id}`)}
                     >
                       <img
-                        src={relatedProduct.image || 'https://via.placeholder.com/200'}
+                        src={relatedProduct.images?.[0]?.image || relatedProduct.image || 'https://via.placeholder.com/200'}
                         alt={relatedProduct.name || 'Related Product'}
                         className="card-img-top"
                         style={{ height: '200px', objectFit: 'cover' }}
@@ -560,7 +537,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ cart, setCart }) => {
               backgroundColor: notification.type === 'success' ? '#228B22' : '#DC3545',
               color: '#fff',
               zIndex: 1060,
-              animation: 'slideInRight 0.3s ease-out'
+              animation: 'slideInRight 0.3s ease-out',
             }}
           >
             {notification.message}

@@ -3,11 +3,14 @@ import ProductCard from '../components/ProductCard';
 import TestimonialCard from '../components/TestimonialCard';
 import MediaGallery from '../components/MediaGallery';
 import api from '../api/api';
-import type { Produce, Testimonial, Media, Category, Customer, Order, OrderItem, ProduceImage, NutritionInfo, HealthBenefit } from '../api/api';
+import type { Produce, Testimonial, Media } from '../api/api';
 
+interface HomeProps {
+  cart: Array<Produce & { quantity: number }>;
+  setCart: React.Dispatch<React.SetStateAction<Array<Produce & { quantity: number }>>>;
+}
 
-const Home = () => {
-  const [cart, setCart] = useState<(Produce & { quantity?: number })[]>([]);
+const Home: React.FC<HomeProps> = ({ cart, setCart }) => {
   const [activeTab, setActiveTab] = useState('about');
   const [products, setProducts] = useState<Produce[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -25,8 +28,13 @@ const Home = () => {
           api.getTestimonials(),
           api.getMedia(),
         ]);
-        setProducts(produceData.slice(0, 3)); // Limit to 3 featured products
-        setTestimonials(testimonialsData.slice(0, 3)); // Limit to 3 testimonials
+        // Filter top products: badge exists or rating >= 4.5, limit to 3
+        const topProducts = produceData
+          .filter(p => p.badge || p.rating >= 4.5)
+          .sort((a, b) => b.rating - a.rating)
+          .slice(0, 3);
+        setProducts(topProducts);
+        setTestimonials(testimonialsData.slice(0, 3));
         setGalleryImages(mediaData);
         setLoading(false);
       } catch (error: any) {
@@ -38,9 +46,16 @@ const Home = () => {
   }, []);
 
   const handleAddToCart = (product: Produce) => {
-    setCart(prev => [...prev, { ...product, quantity: 1 }]);
+    if (!product.available) return;
+    const existingItem = cart.find(item => item.id === product.id);
+    if (existingItem) {
+      setCart(cart.map(item =>
+        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      ));
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }]);
+    }
 
-    // Enhanced notification with better animation
     const notification = document.createElement('div');
     notification.style.position = 'fixed';
     notification.style.top = '1rem';
@@ -58,24 +73,17 @@ const Home = () => {
     notification.style.alignItems = 'center';
     notification.style.gap = '0.75rem';
     notification.style.fontWeight = '600';
-    notification.style.borderLeft = '4px solid #1B691B';
-
     notification.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M20 6L9 17l-5-5"/>
       </svg>
       ${product.name} added to cart!
     `;
-
     document.body.appendChild(notification);
-
-    // Slide-in animation
     setTimeout(() => {
       notification.style.opacity = '1';
       notification.style.transform = 'translateX(0)';
     }, 10);
-
-    // Slide-out and remove
     setTimeout(() => {
       notification.style.opacity = '0';
       notification.style.transform = 'translateX(100px)';
@@ -189,6 +197,7 @@ const Home = () => {
                 transition: 'all 0.3s ease',
                 animation: 'slideUp 0.8s ease-out 0.4s'
               }}
+              onClick={() => window.location.href = '/shop'}
               onMouseOver={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
                 e.currentTarget.style.boxShadow = '0 12px 25px rgba(34, 139, 34, 0.4)';
@@ -252,11 +261,7 @@ const Home = () => {
       </section>
 
       {/* About & Mission Section */}
-      <section
-        id="about-mission"
-        className="py-5"
-        style={{ backgroundColor: '#f8f9fa' }}
-      >
+      <section id="about-mission" className="py-5" style={{ backgroundColor: '#f8f9fa' }}>
         <div className="container">
           <div className="row align-items-center">
             <div className="col-lg-6 mb-5 mb-lg-0">
@@ -406,20 +411,14 @@ const Home = () => {
       </section>
 
       {/* Featured Products */}
-      <section
-        className="py-5 position-relative"
-        style={{ backgroundColor: '#fff' }}
-      >
+      <section className="py-5 position-relative" style={{ backgroundColor: '#fff' }}>
         <div className="container">
           <div className="text-center mb-5">
-            <h2
-              className="display-5 fw-bold mb-3"
-              style={{ color: '#2F4F4F' }}
-            >
-              Fresh From Our Farm
+            <h2 className="display-5 fw-bold mb-3" style={{ color: '#2F4F4F' }}>
+              Top Picks From Our Farm
             </h2>
             <p className="lead text-muted mx-auto" style={{ maxWidth: '600px' }}>
-              Hand-picked, organic produce grown with care and sustainable practices
+              Discover our hand-picked, organic best-sellers grown with care
             </p>
           </div>
           <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
@@ -440,19 +439,10 @@ const Home = () => {
       </section>
 
       {/* Testimonials */}
-      <section
-        id="testimonials"
-        className="py-5"
-        style={{
-          background: 'linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%)'
-        }}
-      >
+      <section id="testimonials" className="py-5" style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%)' }}>
         <div className="container">
           <div className="text-center mb-5">
-            <h2
-              className="display-5 fw-bold mb-3"
-              style={{ color: '#2F4F4F' }}
-            >
+            <h2 className="display-5 fw-bold mb-3" style={{ color: '#2F4F4F' }}>
               Loved by Our Community
             </h2>
             <p className="lead text-muted">
@@ -466,9 +456,7 @@ const Home = () => {
                 className="col"
                 style={{ animation: `slideUp 0.6s ease-out ${0.2 * index}s` }}
               >
-                <TestimonialCard
-                  testimonial={testimonial}
-                />
+                <TestimonialCard testimonial={testimonial} />
               </div>
             ))}
           </div>
@@ -484,33 +472,12 @@ const Home = () => {
 
       <style>
         {`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-          }
-          @keyframes bounceIn {
-            0% { opacity: 0; transform: scale(0.3); }
-            50% { opacity: 1; transform: scale(1.05); }
-            70% { transform: scale(0.9); }
-            100% { opacity: 1; transform: scale(1); }
-          }
-          @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-          }
-          @keyframes scrollBounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
-            40% { transform: translateX(-50%) translateY(-10px); }
-            60% { transform: translateX(-50%) translateY(-5px); }
-          }
+          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+          @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+          @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+          @keyframes scrollBounce { 0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); } 40% { transform: translateX(-50%) translateY(-10px); } 60% { transform: translateX(-50%) translateY(-5px); } }
         `}
       </style>
     </div>
